@@ -112,6 +112,20 @@
             background: #d32f2f;
             transform: scale(1.05);
         }
+        .btn-edit {
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 20px;
+            transition: all 0.3s;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .btn-edit:hover {
+            background: #1976D2;
+            transform: scale(1.05);
+        }
         .empty-state {
             text-align: center;
             padding: 60px 20px;
@@ -130,6 +144,123 @@
             border-radius: 20px;
             font-weight: 600;
             font-size: 14px;
+        }
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .edit-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .edit-modal-content {
+            background-color: white;
+            margin: 50px auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 5px 30px rgba(0,0,0,0.3);
+            animation: slideDown 0.3s ease-out;
+        }
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 15px;
+        }
+        .modal-header h3 {
+            color: #333;
+            margin: 0;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.3s;
+        }
+        .close-btn:hover {
+            color: #333;
+        }
+        .modal-body {
+            margin-bottom: 20px;
+        }
+        .modal-form-group {
+            margin-bottom: 15px;
+        }
+        .modal-form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        .modal-form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        .modal-form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        .btn-save {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 30px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .btn-cancel {
+            background: #e0e0e0;
+            color: #333;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 30px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-cancel:hover {
+            background: #d0d0d0;
         }
     </style>
 </head>
@@ -177,13 +308,18 @@
                         </div>
                         <div class="habit-name">{{ habit }}</div>
                     </div>
-                    <form method="post" style="display: inline;">
-                        <input type="hidden" name="action" value="delete">
-                        <input type="hidden" name="habit_name" value="{{ habit }}">
-                        <button type="submit" class="btn-delete" onclick="return confirm('Delete this habit?')">
-                            <i class="fas fa-trash me-1"></i>Delete
+                    <div style="display: flex; gap: 10px;">
+                        <button type="button" class="btn-edit" onclick="openEditModal('{{ habit }}')">
+                            <i class="fas fa-edit me-1"></i>Edit
                         </button>
-                    </form>
+                        <form method="post" style="display: inline;">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="habit_name" value="{{ habit }}">
+                            <button type="submit" class="btn-delete" onclick="return confirm('Delete this habit?')">
+                                <i class="fas fa-trash me-1"></i>Delete
+                            </button>
+                        </form>
+                    </div>
                 </div>
                 {% endfor %}
             {% else %}
@@ -195,5 +331,61 @@
             {% endif %}
         </div>
     </div>
+
+    <!-- Edit Modal -->
+    <div class="edit-modal" id="editModal">
+        <div class="edit-modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit me-2"></i>Edit Habit</h3>
+                <button class="close-btn" onclick="closeEditModal()">&times;</button>
+            </div>
+            <form method="post" id="editForm">
+                <input type="hidden" name="action" value="edit">
+                <input type="hidden" name="habit_name" id="oldHabitName">
+                
+                <div class="modal-body">
+                    <div class="modal-form-group">
+                        <label for="newHabitName">Habit Name</label>
+                        <input type="text" id="newHabitName" name="new_habit_name" placeholder="Enter new habit name" required>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+                    <button type="submit" class="btn-save">
+                        <i class="fas fa-check me-1"></i>Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openEditModal(habitName) {
+            document.getElementById('oldHabitName').value = habitName;
+            document.getElementById('newHabitName').value = habitName;
+            document.getElementById('editModal').style.display = 'block';
+            document.getElementById('newHabitName').focus();
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('editModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Close modal when pressing Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeEditModal();
+            }
+        });
+    </script>
 </body>
 </html>

@@ -165,6 +165,14 @@ def habits():
                 habits_data[user][current_month].append(habit_name)
                 save_json(HABITS_FILE, habits_data)
         
+        elif action == "edit":
+            old_habit_name = request.form.get("habit_name")
+            new_habit_name = request.form.get("new_habit_name", "").strip()
+            if old_habit_name in habits_data[user][current_month] and new_habit_name:
+                idx = habits_data[user][current_month].index(old_habit_name)
+                habits_data[user][current_month][idx] = new_habit_name
+                save_json(HABITS_FILE, habits_data)
+        
         elif action == "delete":
             habit_name = request.form.get("habit_name")
             if habit_name in habits_data[user][current_month]:
